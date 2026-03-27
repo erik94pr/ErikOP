@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operatörsprofil – Erik Petersson Rosberg</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f4f0; color: #1a1a1a; padding: 2rem 1rem; min-height: 100vh;
+}
+.container { max-width: 980px; margin: 0 auto; }
+
+/* Header */
+.profile-header {
+  display: flex; align-items: center; gap: 18px;
+  background: #fff; border-radius: 14px;
+  border: 0.5px solid rgba(0,0,0,0.1);
+  padding: 1.5rem 1.75rem; margin-bottom: 1.25rem;
+}
+.avatar {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: #9FE1CB; display: flex; align-items: center;
+  justify-content: center; font-weight: 700; font-size: 19px;
+  color: #085041; flex-shrink: 0;
+}
+.header-info h1 { font-size: 22px; font-weight: 700; color: #111; }
+.header-info p { font-size: 13px; color: #666; margin-top: 3px; }
+.header-info small { font-size: 11px; color: #aaa; }
+
+/* Tab switcher */
+.tab-bar {
+  display: flex; gap: 0; background: #fff;
+  border-radius: 12px; border: 0.5px solid rgba(0,0,0,0.1);
+  padding: 5px; margin-bottom: 1.25rem; width: fit-content;
+}
+.tab-btn {
+  padding: 8px 22px; border-radius: 9px; border: none;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  background: transparent; color: #888; transition: all 0.18s;
+}
+.tab-btn.active { background: #1D9E75; color: #fff; }
+.tab-btn:hover:not(.active) { background: #f0f0f0; color: #333; }
+
+/* Panel */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Metrics */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+.metric { background: #fff; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.08); padding: 14px 16px; }
+.metric-label { font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em; }
+.metric-value { font-size: 22px; font-weight: 700; color: #111; }
+.metric-sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+/* Cards */
+.card { background: #fff; border-radius: 14px; border: 0.5px solid rgba(0,0,0,0.08); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+.card h3 { font-size: 12px; font-weight: 600; color: #999; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-sub { font-size: 11px; color: #bbb; margin-bottom: 14px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.type-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.type-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+.type-legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* Top ops */
+.op-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 0.5px solid #f0f0f0; }
+.op-row:last-child { border-bottom: none; }
+.op-rank { font-size: 12px; color: #ccc; min-width: 22px; font-weight: 600; }
+.op-bar-wrap { flex: 1; min-width: 0; }
+.op-desc { font-size: 12px; color: #222; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.op-bar-bg { height: 6px; background: #f0f0f0; border-radius: 3px; }
+.op-bar-fill { height: 100%; border-radius: 3px; }
+.op-right { text-align: right; min-width: 48px; }
+.op-count { font-size: 14px; font-weight: 700; color: #111; }
+.op-code { font-size: 10px; color: #bbb; font-family: 'Courier New', monospace; }
+
+/* Role badge */
+.op-list-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; border-bottom: 0.5px solid #f5f5f5; break-inside: avoid;
+}
+.op-list-row:last-child { border-bottom: none; }
+.op-list-name { font-size: 12px; color: #333; }
+.op-list-count {
+  font-size: 12px; font-weight: 700; color: #fff;
+  background: #378ADD; border-radius: 20px;
+  padding: 1px 9px; min-width: 28px; text-align: center;
+}
+  display: inline-block; padding: 3px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; margin-left: 8px;
+}
+.badge-op { background: #E1F5EE; color: #0F6E56; }
+.badge-asst { background: #E6F1FB; color: #185FA5; }
+
+@media (max-width: 620px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="profile-header">
+  <div class="avatar">EP</div>
+  <div class="header-info">
+    <h1>Erik Petersson Rosberg</h1>
+    <p>Ortopedkirurg &middot; Operationsstatistik 2021–2026</p>
+    <small>Totalt 1 184 operationer som operatör eller assistent &middot; KVÅ-koder 2026</small>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('op')">
+    Som operatör <span style="font-size:11px;opacity:0.8">(889 op.)</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('asst')">
+    Som assistent <span style="font-size:11px;opacity:0.8">(295 op.)</span>
+  </button>
+</div>
+
+<!-- OPERATÖR PANEL -->
+<div class="panel active" id="panel-op">
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Totalt antal operationer</div>
+      <div class="metric-value">889</div>
+      <div class="metric-sub">som operatör</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Unika operationskoder</div>
+      <div class="metric-value">93</div>
+      <div class="metric-sub">distinkta ingrepp</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Mest aktiva år</div>
+      <div class="metric-value">2022</div>
+      <div class="metric-sub">223 operationer</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Vanligaste ingrepp</div>
+      <div class="metric-value">NFB19</div>
+      <div class="metric-sub">95 st &middot; höftprotes</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Operationer per kroppsregion</h3>
+    <div class="card-sub">Bubbelstorlek proportionell mot antal operationer</div>
+    <div style="position: relative; width: 100%; height: 360px;">
+      <canvas id="bubbleOp"></canvas>
+    </div>
+    <div class="legend" id="legendOp"></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card" style="margin-bottom:0">
+      <h3>Operationer per år</h3>
+      <div style="position:relative;height:210px;margin-top:12px">
+        <canvas id="yearOp"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3>Fördelning operationstyper</h3>
+      <div style="position:relative;height:160px;margin-top:12px">
+        <canvas id="typeOp"></canvas>
+      </div>
+      <div class="type-legend" id="typeLegendOp"></div>
+    </div>
+  </div>
+  <div style="margin-bottom:1.25rem"></div>
+
+  <div class="card">
+    <h3>Topp 10 vanligaste operationer <span class="role-badge badge-op">Operatör</span></h3>
+    <div style="margin-top:12px" id="top10Op"></div>
+  </div>
+</div>
+
+<!-- ASSISTENT PANEL -->
+<div class="panel" id="panel-asst">
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Totalt antal operationer</div>
+      <div class="metric-value">295</div>
+      <div class="metric-sub">som assistent</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Unika operationskoder</div>
+      <div class="metric-value">80</div>
+      <div class="metric-sub">distinkta ingrepp</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Mest aktiva år</div>
+      <div class="metric-value">2023</div>
+      <div class="metric-sub">116 operationer</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Vanligaste ingrepp</div>
+      <div class="metric-value">NDJ69</div>
+      <div class="metric-sub">37 st &middot; handledsfraktur</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Operationer per kroppsregion</h3>
+    <div class="card-sub">Bubbelstorlek proportionell mot antal operationer</div>
+    <div style="position: relative; width: 100%; height: 360px;">
+      <canvas id="bubbleAsst"></canvas>
+    </div>
+    <div class="legend" id="legendAsst"></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card" style="margin-bottom:0">
+      <h3>Operationer per år</h3>
+      <div style="position:relative;height:210px;margin-top:12px">
+        <canvas id="yearAsst"></canvas>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3>Fördelning operationstyper</h3>
+      <div style="position:relative;height:160px;margin-top:12px">
+        <canvas id="typeAsst"></canvas>
+      </div>
+      <div class="type-legend" id="typeLegendAsst"></div>
+    </div>
+  </div>
+  <div style="margin-bottom:1.25rem"></div>
+
+  <div class="card">
+    <h3>Topp 10 vanligaste operationer <span class="role-badge badge-asst">Assistent</span></h3>
+    <div style="margin-top:12px" id="top10Asst"></div>
+  </div>
+
+  <div class="card">
+    <h3>Operatörer jag assisterat <span class="role-badge badge-asst">48 operatörer</span></h3>
+    <div class="card-sub">Antal gånger som assistent per operatör</div>
+    <div id="operatorsList" style="margin-top:4px;columns:2;column-gap:24px;"></div>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:#bbb;padding:1rem 0 0.5rem">
+  Erik Petersson Rosberg &middot; KVÅ-operationsdata 2021–2026
+</div>
+
+</div><!-- /container -->
+
+<script>
+function switchTab(role) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + role).classList.add('active');
+  event.target.classList.add('active');
+}
+
+const groupColors = {
+  'Lår / Femur':        '#378ADD',
+  'Höft':               '#D85A30',
+  'Knä / Underben':     '#1D9E75',
+  'Fot / Fotled':       '#7F77DD',
+  'Armbåge / Underarm': '#BA7517',
+  'Axel / Överarm':     '#D4537E',
+  'Handled / Hand':     '#639922',
+  'Bäcken':             '#888780',
+  'Rygg / Kota':        '#E24B4A',
+  'Sår / Hud':          '#F0997B',
+  'Övrigt':             '#B4B2A9',
+};
+
+const opGroups  = {"Höft":154,"Lår / Femur":210,"Handled / Hand":193,"Armbåge / Underarm":85,"Fot / Fotled":117,"Knä / Underben":85,"Axel / Överarm":22,"Sår / Hud":14,"Övrigt":9};
+const asstGroups = {"Handled / Hand":61,"Knä / Underben":51,"Höft":49,"Lår / Femur":44,"Rygg / Kota":13,"Övrigt":15,"Armbåge / Underarm":26,"Fot / Fotled":30,"Axel / Överarm":4,"Sår / Hud":2};
+
+const opTop10 = [
+  {code:'NFB19',desc:'Primär halv- eller delprotes i höftled med cement',n:95},
+  {code:'NFJ89',desc:'Osteosyntes av femurfraktur med annan eller kombinerad metod',n:88},
+  {code:'NDJ19',desc:'Öppen reposition av fraktur i handled eller hand',n:88},
+  {code:'NFJ59',desc:'Osteosyntes av femurfraktur med märgspik',n:48},
+  {code:'NFJ49',desc:'Osteosyntes av femurfraktur med cerklage, collumspik, stift eller dylikt',n:45},
+  {code:'NCJ19',desc:'Öppen reposition av fraktur i armbåge eller underarm',n:36},
+  {code:'NHJ03',desc:'Sluten reposition av fraktur i fotled/fot – båda malleolerna och bakre tibiakanten',n:33},
+  {code:'NDJ69',desc:'Osteosyntes av fraktur i handled eller hand med platta och skruvar',n:31},
+  {code:'NGJ19',desc:'Öppen reposition av fraktur i knä eller underben',n:29},
+  {code:'NFB49',desc:'Primär total höftledsplastik med cement',n:26},
+];
+const asstTop10 = [
+  {code:'NDJ69',desc:'Osteosyntes av fraktur i handled eller hand med platta och skruvar',n:37},
+  {code:'NGB49',desc:'Primär totalprotes i knäled med cement',n:29},
+  {code:'NFB19',desc:'Primär halv- eller delprotes i höftled med cement',n:22},
+  {code:'NFJ89',desc:'Osteosyntes av femurfraktur med annan eller kombinerad metod',n:20},
+  {code:'NFJ59',desc:'Osteosyntes av femurfraktur med märgspik',n:11},
+  {code:'NFJ49',desc:'Osteosyntes av femurfraktur med cerklage, collumspik, stift eller dylikt',n:10},
+  {code:'ABC56',desc:'Dekompression av ryggmärgen och nervrötter i ländryggraden',n:9},
+  {code:'NFB29',desc:'Primär total höftledsplastik utan cement',n:9},
+  {code:'NDJ89',desc:'Osteosyntes av fraktur i handled eller hand med annan eller kombinerad metod',n:8},
+  {code:'TND32',desc:'Modellerbar skena – handled och hand',n:7},
+];
+
+const barColors = ['#378ADD','#1D9E75','#D85A30','#7F77DD','#BA7517','#D4537E','#639922','#378ADD','#E24B4A','#888780'];
+
+function buildBubble(canvasId, legendId, groups) {
+  const names = Object.keys(groups);
+  new Chart(document.getElementById(canvasId), {
+    type: 'bubble',
+    data: {
+      datasets: names.map((name, i) => ({
+        label: name,
+        data: [{ x: (i % 5) * 19 + 10, y: Math.floor(i / 5) * 45 + 20, r: Math.max(8, Math.sqrt(groups[name]) * 2.4) }],
+        backgroundColor: (groupColors[name] || '#aaa') + 'CC',
+        borderColor: groupColors[name] || '#aaa',
+        borderWidth: 1.5,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${groups[ctx.dataset.label]} operationer` } }
+      },
+      scales: { x:{min:0,max:100,display:false}, y:{min:0,max:80,display:false} },
+      layout: { padding: 20 }
+    },
+    plugins: [{
+      afterDraw(chart) {
+        const ctx2 = chart.ctx;
+        chart.data.datasets.forEach((ds, i) => {
+          const meta = chart.getDatasetMeta(i);
+          if (!meta.hidden && meta.data.length) {
+            const pt = meta.data[0];
+            const r = pt.options.radius;
+            ctx2.save();
+            ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+            const name = ds.label;
+            const count = groups[name];
+            const parts = name.split(' / ');
+            const fs = Math.max(9, Math.min(13, r * 0.45));
+            ctx2.font = `700 ${fs}px -apple-system, sans-serif`;
+            ctx2.fillStyle = 'rgba(255,255,255,0.95)';
+            if (parts.length > 1) {
+              ctx2.fillText(parts[0], pt.x, pt.y - fs * 0.7);
+              ctx2.fillText(parts[1], pt.x, pt.y + fs * 0.2);
+            } else {
+              ctx2.fillText(name.length > 13 ? name.substring(0,11)+'…' : name, pt.x, pt.y - fs * 0.45);
+            }
+            ctx2.font = `400 ${Math.max(8, fs - 2)}px -apple-system, sans-serif`;
+            ctx2.fillStyle = 'rgba(255,255,255,0.82)';
+            ctx2.fillText(count + ' op.', pt.x, pt.y + fs * 0.9);
+            ctx2.restore();
+          }
+        });
+      }
+    }]
+  });
+  const el = document.getElementById(legendId);
+  names.forEach(name => {
+    el.innerHTML += `<span class="legend-item"><span class="legend-dot" style="background:${groupColors[name]||'#aaa'}"></span>${name}: <strong>${groups[name]}</strong></span>`;
+  });
+}
+
+function buildYear(canvasId, yearCounts, color) {
+  const allYears = ['2021','2022','2023','2024','2025','2026'];
+  const vals = allYears.map(y => yearCounts[y] || 0);
+  const maxV = Math.max(...vals);
+  new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: allYears,
+      datasets: [{
+        data: vals,
+        backgroundColor: vals.map(v => v === maxV ? color : color + '55'),
+        borderWidth: 0, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw} operationer`}} },
+      scales: {
+        x: { ticks:{font:{size:11},color:'#999',autoSkip:false,maxRotation:0}, grid:{display:false}, border:{display:false} },
+        y: { ticks:{font:{size:11},color:'#999'}, grid:{color:'rgba(0,0,0,0.05)'}, border:{display:false} }
+      }
+    }
+  });
+}
+
+function buildType(canvasId, legendId, top10, total) {
+  const typeMap = { Osteosyntes:0, Protes:0, Amputation:0, Extraktion:0, 'Sår/Hud':0, Övrigt:0 };
+  top10.forEach(o => {
+    if (o.code.match(/^N[A-H]J/)) typeMap.Osteosyntes += o.n;
+    else if (o.code.match(/^N[A-H]B/)) typeMap.Protes += o.n;
+    else if (o.code.match(/^N[A-H]Q/)) typeMap.Amputation += o.n;
+    else if (o.code.match(/^N[A-H]U/)) typeMap.Extraktion += o.n;
+    else if (o.code.startsWith('Q')||o.code.startsWith('DQ')) typeMap['Sår/Hud'] += o.n;
+    else typeMap.Övrigt += o.n;
+  });
+  const known = Object.values(typeMap).reduce((s,v)=>s+v,0);
+  typeMap.Övrigt += total - known;
+  const labels = Object.keys(typeMap);
+  const vals = Object.values(typeMap);
+  const colors = ['#378ADD','#1D9E75','#E24B4A','#BA7517','#D4537E','#B4B2A9'];
+  new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data:vals, backgroundColor:colors, borderWidth:0, hoverOffset:4 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'60%',
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${Math.round(c.raw/total*100)}%)`}} }
+    }
+  });
+  const el = document.getElementById(legendId);
+  labels.forEach((l,i) => {
+    el.innerHTML += `<span class="type-legend-item"><span class="type-legend-sq" style="background:${colors[i]}"></span>${l}: ${vals[i]}</span>`;
+  });
+}
+
+function buildTop10(containerId, top10, colors) {
+  const maxN = top10[0].n;
+  const el = document.getElementById(containerId);
+  top10.forEach((op, i) => {
+    const pct = Math.round(op.n / maxN * 100);
+    el.innerHTML += `
+      <div class="op-row">
+        <span class="op-rank">${i+1}</span>
+        <div class="op-bar-wrap">
+          <div class="op-desc" title="${op.desc}">${op.desc}</div>
+          <div class="op-bar-bg"><div class="op-bar-fill" style="width:${pct}%;background:${colors[i]}"></div></div>
+        </div>
+        <div class="op-right">
+          <div class="op-count">${op.n}</div>
+          <div class="op-code">${op.code}</div>
+        </div>
+      </div>`;
+  });
+}
+
+// Build all charts
+buildBubble('bubbleOp',  'legendOp',   opGroups);
+buildBubble('bubbleAsst','legendAsst', asstGroups);
+
+buildYear('yearOp',   {"2021":63,"2022":223,"2023":203,"2024":198,"2025":118,"2026":84},  '#1D9E75');
+buildYear('yearAsst', {"2021":49,"2022":58,"2023":116,"2024":38,"2025":23,"2026":11}, '#378ADD');
+
+buildType('typeOp',   'typeLegendOp',   opTop10,   889);
+buildType('typeAsst', 'typeLegendAsst', asstTop10, 295);
+
+buildTop10('top10Op',   opTop10,   barColors);
+buildTop10('top10Asst', asstTop10, barColors);
+
+const operatorsList = [
+  {name:'Lozansson, David',n:27},{name:'Harding, Anna-Kajsa',n:25},
+  {name:'Kjaerran, Tove',n:19},{name:'Bergfelt, Maja',n:19},
+  {name:'Gülenc, Baris',n:15},{name:'Wahlberg, Gideon',n:15},
+  {name:'Bergkvist, Dan',n:14},{name:'Hansson, Ulrik',n:14},
+  {name:'Azizpour, Mazaher',n:13},{name:'Larsson, Gert-Uno',n:11},
+  {name:'Ghassan, Mohamed',n:8},{name:'Belfrage, Ola',n:7},
+  {name:'Torres, Eric',n:7},{name:'Zampelis, Vasilios',n:7},
+  {name:'Turesson, Emma',n:7},{name:'Norrman, Per-Ola',n:6},
+  {name:'Grundberg, Christian',n:6},{name:'Smarason, Njall',n:6},
+  {name:'Westberg, Linnea',n:6},{name:'Walczak, Maciej',n:5},
+  {name:'Maripuu, Amanda',n:5},{name:'Ghanipour, Shahab',n:5},
+  {name:'Kesteris, Uldis',n:5},{name:'Ali, Abdulemir',n:4},
+  {name:'Bugera, Ivan',n:3},{name:'Josefsson, Per Olof',n:3},
+  {name:'Möller, Anders',n:3},{name:'Holmberg, Anna',n:3},
+  {name:'Wenger, Daniel',n:2},{name:'Jönsson, Bo',n:2},
+  {name:'Tägil, Magnus',n:2},{name:'Juréus, Jan',n:2},
+  {name:'Tjörnstrand, Jon',n:2},{name:'Lind, Dennis',n:2},
+  {name:'Malmvik, Johan',n:2},{name:'Jumatate, Sorin',n:1},
+  {name:'Swärd, Per',n:1},{name:'Tahir, Mais',n:1},
+  {name:'Örtegren, Jakob',n:1},{name:'Kraus Schmitz, Jesper',n:1},
+  {name:'Persson, Fredrik',n:1},{name:'Zámocky, Martin',n:1},
+  {name:'Stefánsdóttir, Anna',n:1},{name:'Bosemark, Per',n:1},
+  {name:'Damm, Henrik',n:1},{name:'Flivik, Gunnar',n:1},
+  {name:'Hasserius, Ralf',n:1},{name:'Ali, Muhanned',n:1},
+];
+const opsEl = document.getElementById('operatorsList');
+operatorsList.forEach(o => {
+  opsEl.innerHTML += `<div class="op-list-row"><span class="op-list-name">${o.name}</span><span class="op-list-count">${o.n}</span></div>`;
+});
+</script>
+</body>
+</html>
